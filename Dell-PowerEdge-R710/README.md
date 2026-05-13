@@ -42,10 +42,20 @@ Para que as coletas via SSH e Script Externo funcionem, você **deve** configura
 * `{$IDRAC_PASSWORD}`: Senha da iDRAC
 
 ### 2. Dependência de Script Externo
-Este template requer um script externo chamado `get_idrac_power.sh` rodando no seu Zabbix Server/Proxy. 
-O script deve ser capaz de receber os parâmetros `["{HOST.CONN}","{$IDRAC_USER}","{$IDRAC_PASSWORD}"]` e retornar os dados crus (Raw Data) que o Zabbix fará o parsing usando Expressões Regulares (Regex) nativas do template.
+Este template exige a execução de um script externo na máquina do seu Zabbix Server ou Zabbix Proxy. O script utiliza o pacote `sshpass` para realizar a autenticação.
 
-### 3. Importação
-1. Importe o arquivo `Dell PowerEdge R710 - Enterprise.yaml` no seu Zabbix.
-2. Crie o Host com a interface SNMP e interface Agent (para o ping/script).
-3. Associe o template e preencha as macros.
+**Passo a passo da instalação do script:**
+1. Instale o utilitário `sshpass` no seu servidor Zabbix Linux:
+   ```bash
+   apt update && apt install sshpass -y  # Para Debian/Ubuntu
+   yum install sshpass -y                # Para RHEL/CentOS
+
+2. Baixe o script get_idrac_power.sh deste repositório.
+
+3. Mova o script para o diretório de ExternalScripts do Zabbix (o padrão é /usr/lib/zabbix/externalscripts/):
+  ```bash
+  mv get_idrac_power.sh /usr/lib/zabbix/externalscripts/
+
+
+
+
