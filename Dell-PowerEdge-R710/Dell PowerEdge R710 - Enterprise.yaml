@@ -1,0 +1,192 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 75878d6b1d424b948cf53a2386d34b45
+      name: Templates/Hardware
+  templates:
+    - uuid: d912b7a8c4e54f329a6b8d7c1e3f5a2b
+      template: 'Dell PowerEdge R710 - Enterprise'
+      name: 'Dell PowerEdge R710 - Enterprise'
+      groups:
+        - name: Templates/Hardware
+      items:
+        - uuid: a1d3c2b4b5e649a28e3b6d7c1f9a0e2f
+          name: 'Total Energy Consumption'
+          type: DEPENDENT
+          key: energy.total
+          units: kWh
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - 'cfgServerCumulativePowerConsumption=([0-9]+)'
+                - \1
+            - type: MULTIPLIER
+              parameters:
+                - '0.001'
+          master_item:
+            key: 'get_idrac_power.sh["{HOST.CONN}","{$IDRAC_USER}","{$IDRAC_PASSWORD}"]'
+        - uuid: e5d3a2b1c4f649a28e3b6d7c1f9e0d2b
+          name: 'iDRAC Power Raw Data'
+          type: EXTERNAL
+          key: 'get_idrac_power.sh["{HOST.CONN}","{$IDRAC_USER}","{$IDRAC_PASSWORD}"]'
+          history: 1d
+          value_type: TEXT
+        - uuid: d422e0f02e894582b208411b57f8ff5d
+          name: 'ICMP ping'
+          type: SIMPLE
+          key: icmpping
+          delay: 60s
+          history: 1w
+          value_type: FLOAT
+        - uuid: ca67aac7cbe8430da7be0384626d1173
+          name: 'ICMP loss'
+          type: SIMPLE
+          key: icmppingloss
+          delay: 60s
+          history: 1w
+          value_type: FLOAT
+          units: '%'
+        - uuid: bea29fd7096e40ec8b1431435c706881
+          name: 'System Asset Tag'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.674.10892.2.1.1.11.0
+          key: idrac_assettag
+          delay: '86400'
+          history: 7d
+          value_type: CHAR
+          inventory_link: ASSET_TAG
+          tags:
+            - tag: Application
+              value: 'System Info'
+        - uuid: b7d3e2a1c4f549a28e3b6d7c1f9a0e2d
+          name: 'iDRAC Firmware Version'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.674.10892.2.1.1.5.0
+          key: idrac_firmwareversion
+          delay: 1h
+          value_type: CHAR
+          tags:
+            - tag: Application
+              value: 'System Info'
+        - uuid: c4d3e2a1b5f649a28e3b6d7c1e9a0e2f
+          name: Model
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.674.10892.2.1.1.2.0
+          key: idrac_SystemModel
+          delay: 1h
+          value_type: CHAR
+          tags:
+            - tag: Application
+              value: 'System Info'
+        - uuid: f4d3c2b1a5e649a28e3b6d7c1f9a0e2d
+          name: 'Power Consumption'
+          type: DEPENDENT
+          key: power.current
+          units: W
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - 'cfgServerActualPowerConsumption=([0-9]+)'
+                - \1
+          master_item:
+            key: 'get_idrac_power.sh["{HOST.CONN}","{$IDRAC_USER}","{$IDRAC_PASSWORD}"]'
+        - uuid: d5a3c2b1e4f649a28e3b6d7c1f9a0e2e
+          name: 'Current Amperage'
+          type: DEPENDENT
+          key: psu.amperage
+          value_type: FLOAT
+          units: A
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - 'cfgServerPeakAmperage=([0-9\.]+)'
+                - \1
+          master_item:
+            key: 'get_idrac_power.sh["{HOST.CONN}","{$IDRAC_USER}","{$IDRAC_PASSWORD}"]'
+        - uuid: f5a8d2e1c4b749a28e3f6d7b1c9a0e2f
+          name: 'BIOS Version'
+          type: SSH
+          key: 'ssh.run[bios.version]'
+          delay: 1h
+          value_type: CHAR
+          params: 'racadm getsysinfo'
+          username: '{$IDRAC_USER}'
+          password: '{$IDRAC_PASSWORD}'
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - 'System BIOS Version\s*=\s*(.+)'
+                - \1
+          tags:
+            - tag: Application
+              value: 'System Info'
+        - uuid: a499ea085f3c4946885f24096890c937
+          name: 'System name'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 2w
+          value_type: CHAR
+          inventory_link: NAME
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 12h
+        # --- ITEM DE TEMPERATURA COM UUIDV4 VÁLIDO ---
+        - uuid: c1b2a3d4e5f647a8b9c0d1e2f3a4b5c6
+          name: 'System board ambient temperature'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.674.10892.5.4.700.20.1.6.1.1
+          key: temp.system_board_ambient
+          delay: 3m
+          value_type: FLOAT
+          units: C
+          tags:
+            - tag: Application
+              value: 'Temperature'
+      macros:
+        - macro: '{$IDRAC_PASSWORD}'
+          value: $p3ct0
+        - macro: '{$IDRAC_USER}'
+          value: root
+  triggers:
+    # --- TRIGGER 1: PERDA DE PING (CRÍTICO) ---
+    - uuid: d2c3b4a5f6e748b9a0d1e2f3a4b5c6d7
+      expression: 'last(/Dell PowerEdge R710 - Enterprise/icmpping)=0'
+      name: 'Host indisponível: Perda de comunicação ICMP'
+      priority: HIGH
+      description: 'O host parou de responder aos pacotes de ping (Perda de comunicação).'
+      tags:
+        - tag: scope
+          value: availability
+    # --- TRIGGER 2: TEMPERATURA ALTA (FAILURE / CRÍTICO) ---
+    - uuid: e3d4c5b6a7f849c0a1e2f3a4b5c6d7e8
+      expression: 'last(/Dell PowerEdge R710 - Enterprise/temp.system_board_ambient)>47'
+      name: 'Temperatura System Board Ambient Crítica: Acima do limite Failure (>47°C)'
+      priority: HIGH
+      description: 'A temperatura do sistema ultrapassou o limite Failure Threshold (Máx 47°C).'
+    # --- TRIGGER 3: TEMPERATURA ALTA (WARNING / ATENÇÃO) ---
+    - uuid: f4e5d6c7b8a940d1a2f3a4b5c6d7e8f9
+      expression: 'last(/Dell PowerEdge R710 - Enterprise/temp.system_board_ambient)>42'
+      name: 'Temperatura System Board Ambient Alta: Acima do limite Warning (>42°C)'
+      priority: WARNING
+      description: 'A temperatura do sistema ultrapassou o limite Warning Threshold (Máx 42°C).'
+      dependencies:
+        - name: 'Temperatura System Board Ambient Crítica: Acima do limite Failure (>47°C)'
+          expression: 'last(/Dell PowerEdge R710 - Enterprise/temp.system_board_ambient)>47'
+    # --- TRIGGER 4: TEMPERATURA BAIXA (FAILURE / CRÍTICO) ---
+    - uuid: a5f6e7d8c9b041e2a3a4b5c6d7e8f9a0
+      expression: 'last(/Dell PowerEdge R710 - Enterprise/temp.system_board_ambient)<3'
+      name: 'Temperatura System Board Ambient Crítica: Abaixo do limite Failure (<3°C)'
+      priority: HIGH
+      description: 'A temperatura do sistema caiu abaixo do limite Failure Threshold (Mín 3°C).'
+    # --- TRIGGER 5: TEMPERATURA BAIXA (WARNING / ATENÇÃO) ---
+    - uuid: b6a7f8e9d0c142f3a4a5b6c7d8e9f0a1
+      expression: 'last(/Dell PowerEdge R710 - Enterprise/temp.system_board_ambient)<8'
+      name: 'Temperatura System Board Ambient Baixa: Abaixo do limite Warning (<8°C)'
+      priority: WARNING
+      description: 'A temperatura do sistema caiu abaixo do limite Warning Threshold (Mín 8°C).'
+      dependencies:
+        - name: 'Temperatura System Board Ambient Crítica: Abaixo do limite Failure (<3°C)'
+          expression: 'last(/Dell PowerEdge R710 - Enterprise/temp.system_board_ambient)<3'
