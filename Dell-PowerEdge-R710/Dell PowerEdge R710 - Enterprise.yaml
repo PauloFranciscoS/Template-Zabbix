@@ -147,7 +147,7 @@ zabbix_export:
               value: 'Temperature'
       macros:
         - macro: '{$IDRAC_PASSWORD}'
-          value: $p3ct0
+          value: Password
         - macro: '{$IDRAC_USER}'
           value: root
   triggers:
