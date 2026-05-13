@@ -49,13 +49,24 @@ Este template exige a execução de um script externo na máquina do seu Zabbix 
    ```bash
    apt update && apt install sshpass -y  # Para Debian/Ubuntu
    yum install sshpass -y                # Para RHEL/CentOS
-
+   ```
 2. Baixe o script get_idrac_power.sh deste repositório.
-
 3. Mova o script para o diretório de ExternalScripts do Zabbix (o padrão é /usr/lib/zabbix/externalscripts/):
   ```bash
-  mv get_idrac_power.sh /usr/lib/zabbix/externalscripts/
-
-
-
-
+  mv get_idrac_power.sh /usr/lib/zabbix/externalscripts/ 
+   ```
+4. Ajuste as permissões e o dono do arquivo para que o usuário do Zabbix consiga executá-lo sem tomar "Permission Denied":
+   ```bash
+   chown zabbix:zabbix /usr/lib/zabbix/externalscripts/get_idrac_power.sh
+   chmod +x /usr/lib/zabbix/externalscripts/get_idrac_power.sh 
+   ```
+5. Importação no Zabbix
+   Importe o arquivo Dell PowerEdge R710 - Enterprise.yaml no seu frontend do Zabbix (Data collection > Templates > Import).
+   
+   Vá em Data collection > Hosts e crie (ou edite) o Host do seu servidor Dell.
+   
+   Adicione uma interface SNMP com o IP da iDRAC e uma interface Agent (pode ser o mesmo IP) para que os itens de Ping e do Script Externo consigam usar a macro {HOST.CONN}.
+   
+   Vá na aba "Templates" e associe o template recém-importado.
+   
+   Vá na aba "Macros" e preencha as credenciais.
